@@ -216,9 +216,9 @@ resource "local_file" "caddy_route" {
     api_port     = var.api_container_port
   })
 
-  # Reload Caddy after writing the route (requires Caddy Admin API on localhost)
+  # Reload Caddy after writing the route
   provisioner "local-exec" {
-    command = "curl -sf -X POST http://10.0.0.95:2019/load -H 'Content-Type: text/caddyfile' --data-binary @${path.module}/../../../infra/caddy/Caddyfile || true"
+    command = "docker exec platform-caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true"
   }
 }
 
@@ -230,6 +230,7 @@ resource "local_file" "project_env" {
   file_permission = "0600"
   content         = templatefile("${path.module}/templates/env.tpl", {
     project_name        = var.project_name
+    domain              = var.domain
     pg_password         = random_password.pg_password.result
     pg_host             = "platform-postgres"
     pg_port             = 5432

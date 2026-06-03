@@ -8,3 +8,7 @@ ${project_name}-api.${domain} {
 ${project_name}.${domain} {
     reverse_proxy ${project_name}-web:80
 }
+
+${project_name}-admin.${domain} {
+    reverse_proxy ${project_name}-admin:80
+}

@@ -13,13 +13,16 @@ REDIS_URL=redis://platform-redis:6379/${redis_db}
 KEYCLOAK_URL=http://platform-keycloak:8080
 KEYCLOAK_REALM=${kc_realm}
 KEYCLOAK_CLIENT_ID=backend-service
-KEYCLOAK_CLIENT_SECRET=${kc_client_secret}
+KC_BACKEND_SERVICE_SECRET=${kc_client_secret}
+KEYCLOAK_PUBLIC_URL=https://auth.${domain}
+KEYCLOAK_ALLOWED_AUDIENCES=web-app,admin-ui,backend-service,mobile-app
+KEYCLOAK_WEB_CLIENT_ID=web-app
 
 # ── MinIO ───────────────────────────────────────────────────────
 MINIO_ENDPOINT=platform-minio:9000
 MINIO_ACCESS_KEY=${minio_access_key}
 MINIO_SECRET_KEY=${minio_secret_key}
-MINIO_BUCKET=${project_name}-images
+MINIO_BUCKET_IMAGES=${project_name}-images
 MINIO_SECURE=false
 
 # ── LiteLLM ─────────────────────────────────────────────────────
@@ -30,3 +33,33 @@ LITELLM_API_KEY=${litellm_key}
 OTEL_EXPORTER_OTLP_ENDPOINT=http://platform-otel-collector:4317
 OTEL_EXPORTER_OTLP_INSECURE=true
 OTEL_RESOURCE_ATTRIBUTES=service.namespace=${project_name},deployment.environment=production
+OTEL_TRACES_SAMPLER=parentbased_traceidratio
+OTEL_TRACES_SAMPLER_ARG=1.0
+ENABLE_OBSERVABILITY_STACK=true
+
+# ── Application URLs ────────────────────────────────────────────
+DOMAIN=${domain}
+VITE_KEYCLOAK_URL=https://auth.${domain}
+VITE_KEYCLOAK_REALM=${kc_realm}
+VITE_API_URL=https://${project_name}-api.${domain}/api/v1
+VITE_ADMIN_URL=https://${project_name}-admin.${domain}
+VITE_GRAFANA_URL=https://grafana.${domain}
+CORS_ORIGINS=https://${project_name}.${domain},https://${project_name}-admin.${domain}
+WEBAUTHN_RP_ID=${project_name}.${domain}
+WEBAUTHN_ORIGIN=https://${project_name}.${domain}
+
+# ── Internal service URLs ───────────────────────────────────────
+VOICE_PROCESSOR_URL=http://${project_name}-voice-processor:8001
+MCP_URL=http://platform-mcp:8000/mcp
+
+# ── Feature flags ───────────────────────────────────────────────
+IS_PROD_BUILD=true
+DEBUG=false
+GEO_REMINDER_ENABLED=false
+IMAGE_CAPTURE_ENABLED=true
+REGISTRATION_ADMIN_APPROVAL=no
+
+# ── Secrets (generate once, set manually) ───────────────────────
+# FERNET_KEY=           # python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# INTERNAL_TRANSCRIBE_TOKEN=   # openssl rand -hex 32
+# MCP_API_KEY=          # copy from platform-infra .env MCP_API_KEY

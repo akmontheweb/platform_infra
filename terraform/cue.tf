@@ -8,8 +8,8 @@ module "cue" {
 
   project_name          = "cue"
   project_display_name  = "Cue"
-  domain                = "cue.dev"
-  app_base_url          = "http://10.0.0.95:8888"
+  domain                = var.domain
+  app_base_url          = "https://cue.${var.domain}"
   redis_db              = 2
   litellm_budget_tokens = 5000000
   litellm_url           = var.litellm_url

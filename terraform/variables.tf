@@ -153,3 +153,15 @@ variable "mcp_tavily_api_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "domain" {
+  description = "Root domain for the platform (e.g. latenightcraft.com)"
+  type        = string
+  default     = "latenightcraft.com"
+}
+
+variable "server_ip" {
+  description = "Public IP of the server"
+  type        = string
+  default     = "178.156.235.155"
+}
