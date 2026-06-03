@@ -304,6 +304,10 @@ services:
     container_name: platform-caddy
     <<: *restart
     networks: [platform]
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN required}
+      CADDY_OBS_USER: ${CADDY_OBS_USER:?CADDY_OBS_USER required}
+      CADDY_OBS_PASSWORD_HASH: ${CADDY_OBS_PASSWORD_HASH:?CADDY_OBS_PASSWORD_HASH required}
     ports:
       - "${PLATFORM_CADDY_HTTP_PORT:-80}:80"
       - "${PLATFORM_CADDY_HTTPS_PORT:-443}:443"
