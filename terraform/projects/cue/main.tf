@@ -12,15 +12,15 @@
 module "cue" {
   source = "../../modules/project"
 
-  project_name         = "cue"
-  project_display_name = "Cue"
-  domain               = var.domain
-  app_base_url         = "http://${var.server_ip}:8888"
-  redis_db             = 2   # DB 2 reserved for Cue
+  project_name          = "cue"
+  project_display_name  = "Cue"
+  domain                = var.domain
+  app_base_url          = "http://${var.server_ip}:8888"
+  redis_db              = 2 # DB 2 reserved for Cue
   litellm_budget_tokens = 5000000
-  litellm_url          = var.litellm_url
-  litellm_master_key   = var.litellm_master_key
-  api_container_port   = 8000
+  litellm_url           = var.litellm_url
+  litellm_master_key    = var.litellm_master_key
+  api_container_port    = 8000
 }
 
 output "cue_env_file" {

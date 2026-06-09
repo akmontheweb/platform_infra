@@ -22,7 +22,7 @@ terraform {
   backend "s3" {
     bucket = "platform-tfstate"
     key    = "platform-infra/terraform.tfstate"
-    region = "us-east-1"   # MinIO ignores this but the provider requires it
+    region = "us-east-1" # MinIO ignores this but the provider requires it
 
     endpoints = {
       s3 = "http://platform-minio:9000"

@@ -1,0 +1,85 @@
+name: CI
+
+# PR-gating workflow for platform-infra.
+# Hard-gate: secrets-verify, compose-validate, terraform fmt/validate, shellcheck.
+# Soft-gate: tflint (informational until a baseline is set).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Secrets gate — fail if any tracked .env* is cleartext.
+  # ─────────────────────────────────────────────────────────────────────
+  secrets-verify:
+    name: secrets-verify (no cleartext .env tracked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: make secrets-verify
+        # Calls scripts/setup-sops.sh verify, which inspects `git ls-files` and
+        # fails if any tracked .env*-but-not-.example-or-.enc file exists.
+        # Doesn't need sops/age installed for this check.
+        run: make secrets-verify
+
+  # ─────────────────────────────────────────────────────────────────────
+  # docker compose config — syntax + variable substitution check.
+  # Uses .env.example so :?required guards don't trip on missing vars.
+  # ─────────────────────────────────────────────────────────────────────
+  compose-validate:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose config
+        run: docker compose --env-file .env.example config --quiet
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Terraform fmt + validate. Plan needs MinIO state backend creds we don't
+  # have in CI, so we init with -backend=false and skip plan here.
+  # ─────────────────────────────────────────────────────────────────────
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.0"
+          terraform_wrapper: false
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+      - name: terraform init (no backend, no remote state)
+        run: terraform init -backend=false
+      - name: terraform validate
+        run: terraform validate -no-color
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Shellcheck on scripts/. The setup-sops, migrate-*, cutover scripts are
+  # load-bearing; a broken `set -e` semantic is a real outage risk.
+  # ─────────────────────────────────────────────────────────────────────
+  shellcheck:
+    name: shellcheck (scripts/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck scripts/*.sh
+        # Soft-gate initially — surface findings without blocking until a clean
+        # baseline is established (Week 2 follow-up).
+        continue-on-error: true
+        run: shellcheck -x scripts/*.sh

@@ -112,11 +112,11 @@ resource "keycloak_openid_client_scope" "project_claims" {
 }
 
 resource "keycloak_openid_user_attribute_protocol_mapper" "project_attr" {
-  realm_id        = keycloak_realm.project.id
-  client_scope_id = keycloak_openid_client_scope.project_claims.id
-  name            = "project-attr"
-  user_attribute  = "project"
-  claim_name      = "project"
+  realm_id         = keycloak_realm.project.id
+  client_scope_id  = keycloak_openid_client_scope.project_claims.id
+  name             = "project-attr"
+  user_attribute   = "project"
+  claim_name       = "project"
   claim_value_type = "String"
 }
 
@@ -139,8 +139,8 @@ resource "minio_iam_policy" "project" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["s3:*"]
+        Effect = "Allow"
+        Action = ["s3:*"]
         Resource = [
           "arn:aws:s3:::${var.project_name}-*",
           "arn:aws:s3:::${var.project_name}-*/*"
@@ -210,7 +210,7 @@ locals {
 # ---------------------------------------------------------------------------
 resource "local_file" "caddy_route" {
   filename = "${path.module}/../../../infra/caddy/routes/${var.project_name}.caddy"
-  content  = templatefile("${path.module}/templates/caddy-route.tpl", {
+  content = templatefile("${path.module}/templates/caddy-route.tpl", {
     project_name = var.project_name
     domain       = var.domain
     api_port     = var.api_container_port
@@ -228,18 +228,18 @@ resource "local_file" "caddy_route" {
 resource "local_file" "project_env" {
   filename        = "${path.root}/../../${var.project_name}/.env.platform"
   file_permission = "0600"
-  content         = templatefile("${path.module}/templates/env.tpl", {
-    project_name        = var.project_name
-    domain              = var.domain
-    pg_password         = random_password.pg_password.result
-    pg_host             = "platform-postgres"
-    pg_port             = 5432
-    kc_realm            = var.project_name
-    kc_client_secret    = random_password.kc_client_secret.result
-    minio_access_key    = minio_iam_service_account.project.access_key
-    minio_secret_key    = minio_iam_service_account.project.secret_key
-    redis_db            = var.redis_db
-    litellm_key         = local.litellm_key
+  content = templatefile("${path.module}/templates/env.tpl", {
+    project_name     = var.project_name
+    domain           = var.domain
+    pg_password      = random_password.pg_password.result
+    pg_host          = "platform-postgres"
+    pg_port          = 5432
+    kc_realm         = var.project_name
+    kc_client_secret = random_password.kc_client_secret.result
+    minio_access_key = minio_iam_service_account.project.access_key
+    minio_secret_key = minio_iam_service_account.project.secret_key
+    redis_db         = var.redis_db
+    litellm_key      = local.litellm_key
   })
 
   depends_on = [
