@@ -1,0 +1,22 @@
+# SOPS config — selects the age recipient(s) per file path.
+#
+# Generate the production age key (one-time):
+#   age-keygen -o keys/prod-age.txt
+# Capture the public key from the comment line ("# public key: age1...") and
+# paste it below. The private file lives at keys/prod-age.txt — NEVER commit it.
+#
+# To encrypt:  bash scripts/setup-sops.sh encrypt
+# To decrypt:  bash scripts/setup-sops.sh decrypt
+#
+# See SECRETS_RUNBOOK.md for key custody and rotation procedure.
+
+creation_rules:
+  # Production dotenv — committed encrypted as .env.production.enc
+  - path_regex: \.env\.production\.enc$
+    age: REPLACE_WITH_PROD_AGE_PUBLIC_KEY
+    input_type: dotenv
+
+  # Optional dev variant for the same pattern
+  - path_regex: \.env\.dev\.enc$
+    age: REPLACE_WITH_PROD_AGE_PUBLIC_KEY
+    input_type: dotenv

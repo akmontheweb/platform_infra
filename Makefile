@@ -1,4 +1,6 @@
-.PHONY: up down logs build ps shell-postgres shell-redis provision rollback help
+.PHONY: up down logs build ps shell-postgres shell-redis provision rollback help \
+        secrets-install secrets-keygen secrets-encrypt secrets-decrypt secrets-verify \
+        tf-bootstrap tf-init-remote
 
 COMPOSE = docker compose
 TF = cd terraform && terraform
@@ -41,10 +43,45 @@ ps: ## Show platform service health status
 restart-%: ## Restart a specific service: make restart-keycloak
 	$(COMPOSE) restart platform-$*
 
+# ─── Secrets (SOPS + age) ────────────────────────────────────────────────────
+
+secrets-install: ## Install sops + age binaries into ~/.local/bin
+	bash scripts/setup-sops.sh install
+
+secrets-keygen: ## Generate the production age keypair (one-time)
+	bash scripts/setup-sops.sh keygen
+
+secrets-encrypt: ## Encrypt .env.production → .env.production.enc
+	bash scripts/setup-sops.sh encrypt
+
+secrets-decrypt: ## Decrypt .env.production.enc → .env.production
+	bash scripts/setup-sops.sh decrypt
+
+secrets-verify: ## CI gate: fail if any tracked .env* is cleartext
+	bash scripts/setup-sops.sh verify
+
 # ─── Terraform ───────────────────────────────────────────────────────────────
 
-tf-init: ## Initialize Terraform providers
+tf-bootstrap: ## One-time: create MinIO bucket + service account for TF state
+	@set -a && . ./.env.production && set +a && \
+	docker exec -i platform-minio mc alias set local http://localhost:9000 \
+	    "$$PLATFORM_MINIO_ROOT_USER" "$$PLATFORM_MINIO_ROOT_PASSWORD" && \
+	docker exec -i platform-minio mc mb -p local/platform-tfstate && \
+	docker exec -i platform-minio mc version enable local/platform-tfstate && \
+	docker exec -i platform-minio mc admin user add local \
+	    "$$TF_BACKEND_ACCESS_KEY" "$$TF_BACKEND_SECRET_KEY" && \
+	docker exec -i platform-minio mc admin policy attach local readwrite \
+	    --user "$$TF_BACKEND_ACCESS_KEY"
+	@echo "✓ TF state bucket ready: platform-tfstate"
+
+tf-init: ## Initialize Terraform providers (local backend — legacy)
 	$(TF) init
+
+tf-init-remote: ## Initialize Terraform with the MinIO S3 backend
+	@set -a && . ./.env.production && set +a && \
+	$(TF) init \
+	    -backend-config="access_key=$$TF_BACKEND_ACCESS_KEY" \
+	    -backend-config="secret_key=$$TF_BACKEND_SECRET_KEY"
 
 provision: ## Provision a project namespace: make provision PROJECT=cue
 	@echo "Provisioning project: $(PROJECT)"

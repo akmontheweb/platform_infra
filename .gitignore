@@ -1,10 +1,19 @@
-# Secrets — never commit
+# Secrets — never commit cleartext dotenv files
 .env
 .env.local
 .env.production
+.env.dev
 *.env.local
 services/**/.env
 backups/
+
+# Encrypted dotenv files (committed by design) live alongside as
+# `.env.production.enc` and `.env.dev.enc` — those ARE tracked.
+
+# age private keys — never commit
+keys/
+*-age.txt
+*.age
 
 # Terraform state and provider cache
 terraform/.terraform/

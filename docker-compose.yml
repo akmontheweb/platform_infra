@@ -44,7 +44,7 @@ services:
 
   # ── PostgreSQL 16 + pgvector ────────────────────────────────────────────────
   platform-postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16   # TODO(week-2): pin by digest after first prod pull
     container_name: platform-postgres
     <<: *restart
     networks: [platform]
@@ -64,7 +64,7 @@ services:
 
   # ── Keycloak PostgreSQL ─────────────────────────────────────────────────────
   platform-keycloak-postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16   # TODO(week-2): pin by digest after first prod pull
     container_name: platform-keycloak-postgres
     <<: *restart
     networks: [platform]
@@ -95,8 +95,9 @@ services:
       KC_DB_URL: jdbc:postgresql://platform-keycloak-postgres:5432/keycloak
       KC_DB_USERNAME: ${PLATFORM_KC_DB_USER:?PLATFORM_KC_DB_USER required}
       KC_DB_PASSWORD: ${PLATFORM_KC_DB_PASSWORD:?PLATFORM_KC_DB_PASSWORD required}
-      KC_HOSTNAME: ${PLATFORM_KC_PUBLIC_URL:-https://auth.latenightcraft.com}
-      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME: ${PLATFORM_KC_PUBLIC_URL:?PLATFORM_KC_PUBLIC_URL required}
+      # Strict by default in prod; flip to "false" in dev .env when running on LAN IP.
+      KC_HOSTNAME_STRICT: ${PLATFORM_KC_HOSTNAME_STRICT:-true}
       KC_HTTP_ENABLED: "true"
       KC_PROXY: edge
       KC_BOOTSTRAP_ADMIN_USERNAME: ${PLATFORM_KC_ADMIN_USER:?PLATFORM_KC_ADMIN_USER required}
@@ -115,25 +116,32 @@ services:
 
   # ── Redis 7 ─────────────────────────────────────────────────────────────────
   # DB 0 = reserved, DB 1 = LiteLLM semantic cache, DB 2+ = project namespaces
+  # Password required — every connecting project must include the password in
+  # its REDIS_URL (redis://:<password>@platform-redis:6379/<db>).
   platform-redis:
-    image: redis:7-alpine
+    image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99   # redis:7-alpine
     container_name: platform-redis
     <<: *restart
     networks: [platform]
+    environment:
+      PLATFORM_REDIS_PASSWORD: ${PLATFORM_REDIS_PASSWORD:?PLATFORM_REDIS_PASSWORD required}
     ports:
       - "${PLATFORM_REDIS_PORT:-6380}:6379"
     volumes:
       - platform_redis_data:/data
-    command: redis-server --databases 16 --appendonly yes
+    command:
+      - sh
+      - -c
+      - exec redis-server --databases 16 --appendonly yes --requirepass "$$PLATFORM_REDIS_PASSWORD"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$PLATFORM_REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # ── MinIO ────────────────────────────────────────────────────────────────────
   platform-minio:
-    image: minio/minio:latest
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e   # minio:latest as of 2026-06-09
     container_name: platform-minio
     <<: *restart
     networks: [platform]
@@ -154,8 +162,10 @@ services:
 
   # ── LiteLLM Proxy ────────────────────────────────────────────────────────────
   # master_key enables virtual key management (one key per project with budgets)
+  # Image digest captured 2026-06-09 from main-latest. Bump in the same commit
+  # as any LiteLLM behavior change so the running tag and source match.
   platform-litellm:
-    image: ghcr.io/berriai/litellm:main-latest
+    image: ghcr.io/berriai/litellm@sha256:7c311546c25e7bb6e8cafede9fcd3d0d622ac636b5c9418befaa32e85dfb0186
     container_name: platform-litellm
     <<: *restart
     networks: [platform]
@@ -201,15 +211,17 @@ services:
         required: false
     environment:
       MCP_API_KEY: ${MCP_API_KEY:?MCP_API_KEY required}
-      SMTP_HOST: ${SMTP_HOST:-}
+      # Email, SMS, and search are required for production — fail fast if missing.
+      # In dev, set these to empty strings via .env if you want to skip the check.
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST required (set to empty string to disable)}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
-      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
-      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      SMTP_USER: ${SMTP_USER:?SMTP_USER required (set to empty string to disable)}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD required (set to empty string to disable)}
+      SMTP_FROM: ${SMTP_FROM:?SMTP_FROM required}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:?TWILIO_ACCOUNT_SID required (set to empty string to disable)}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:?TWILIO_AUTH_TOKEN required (set to empty string to disable)}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:?TWILIO_PHONE_NUMBER required (set to empty string to disable)}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:?TAVILY_API_KEY required (set to empty string to disable)}
       LITELLM_PROXY_URL: http://platform-litellm:4000
       LITELLM_API_KEY: ${LITELLM_API_KEY:-}
     ports:
@@ -225,7 +237,7 @@ services:
 
   # ── OpenTelemetry Collector ──────────────────────────────────────────────────
   platform-otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.100.0
+    image: otel/opentelemetry-collector-contrib@sha256:cea61bd39d318b3ec7664794f6be9ed0cce9321059a08b4ec5d3b8d310a4b609   # 0.100.0
     container_name: platform-otel-collector
     <<: *restart
     networks: [platform]
@@ -241,7 +253,7 @@ services:
 
   # ── Jaeger ───────────────────────────────────────────────────────────────────
   platform-jaeger:
-    image: jaegertracing/all-in-one:1.57
+    image: jaegertracing/all-in-one@sha256:8f165334f418ca53691ce358c19b4244226ed35c5d18408c5acf305af2065fb9   # 1.57
     container_name: platform-jaeger
     <<: *restart
     user: "0"   # root — required so Jaeger can create badger dirs in named volume
@@ -260,7 +272,7 @@ services:
 
   # ── Prometheus ───────────────────────────────────────────────────────────────
   platform-prometheus:
-    image: prom/prometheus:v2.52.0
+    image: prom/prometheus@sha256:5c435642ca4d8427ca26f4901c11114023004709037880cd7860d5b7176aa731   # v2.52.0
     container_name: platform-prometheus
     <<: *restart
     networks: [platform]
@@ -280,7 +292,7 @@ services:
 
   # ── Grafana ──────────────────────────────────────────────────────────────────
   platform-grafana:
-    image: grafana/grafana:10.4.2
+    image: grafana/grafana@sha256:7d5faae481a4c6f436c99e98af11534f7fd5e8d3e35213552dd1dd02bc393d2e   # 10.4.2
     container_name: platform-grafana
     <<: *restart
     networks: [platform]
@@ -300,7 +312,7 @@ services:
   # Routes are dynamically loaded from infra/caddy/routes/*.caddy
   # Each project gets one file (written by Terraform)
   platform-caddy:
-    image: caddy:2-alpine
+    image: caddy@sha256:86deaf5e3d3408a6ccec08fbb79989783dd26e206ae10bcf78a801dc8c9ab794   # 2-alpine
     container_name: platform-caddy
     <<: *restart
     networks: [platform]
