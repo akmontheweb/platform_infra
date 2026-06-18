@@ -1,0 +1,113 @@
+name: Deploy platform-infra (Production)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Manual-only trigger — use the "Run workflow" button in GitHub Actions UI.
+# No automatic triggers. Nothing runs on push or PR.
+#
+# All production secrets live on the server, never in GitHub:
+#   $DEPLOY_PATH/.env                    ← cleartext, gitignored
+#   $DEPLOY_PATH/.env.production.enc     ← SOPS-encrypted, committed
+#   $DEPLOY_PATH/keys/prod-age.txt       ← age private key, gitignored
+#
+# Reuses the same GitHub repository secrets as the Cue deploy workflow so a
+# single server can host both stacks without duplicating credentials:
+#   HETZNER_SSH_HOST            — server IP or hostname
+#   HETZNER_SSH_USER            — SSH login user (e.g. deploy)
+#   HETZNER_SSH_PRIVATE_KEY     — PEM-encoded private key
+#   HETZNER_SSH_HOST_KEY        — server's public host key (ssh-keyscan -H <host>)
+#   HETZNER_SSH_PORT            — (optional) SSH port, defaults to 22
+#   PLATFORM_INFRA_DEPLOY_PATH  — (optional) repo root on server,
+#                                 defaults to /home/deploy/platform_infra
+#
+# First-time server setup:
+#   git clone https://github.com/<org>/platform-infra.git /home/deploy/platform_infra
+#   # Populate .env (or decrypt .env.production.enc with the age key) before
+#   # the first deploy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_target:
+        description: 'Deployment target to execute'
+        required: true
+        type: choice
+        default: 'DeployPlatformInfra'
+        options:
+          - FirstTimeSetup
+          - DeployPlatformInfra
+          - ForceRecreateAll
+          - RestartService
+          - ProvisionProject
+          - BackupNow
+      git_ref:
+        description: 'Branch or tag to deploy (e.g. main, v1.2.0)'
+        required: true
+        default: 'main'
+      force_clean_build:
+        description: 'Rebuild locally-built images without Docker layer cache (ignored by RestartService/ProvisionProject/BackupNow; implied by ForceRecreateAll)'
+        required: false
+        type: boolean
+        default: false
+      wait_for_healthy:
+        description: 'Block until platform-postgres/keycloak/redis/minio report healthy after the deploy'
+        required: false
+        type: boolean
+        default: true
+      service_name:
+        description: 'Service to restart (RestartService only). Bare name OK: "redis" or "platform-redis".'
+        required: false
+        default: ''
+      project_name:
+        description: 'Project to (re-)provision via terraform (ProvisionProject only). e.g. cue'
+        required: false
+        default: ''
+      confirm_destructive_action:
+        description: 'Required for FirstTimeSetup'
+        required: false
+        type: boolean
+        default: false
+
+# Prevent two deployments running simultaneously.
+# A second trigger will queue and wait — never cancel in-flight work.
+concurrency:
+  group: production-deploy-platform-infra
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 'Deploy → platform-infra Production'
+    runs-on: ubuntu-latest
+    environment: PLATFORM_INFRA_PRODUCTION
+    timeout-minutes: 45
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262  # v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_SSH_HOST }}
+          username: ${{ secrets.HETZNER_SSH_USER }}
+          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          host_key: ${{ secrets.HETZNER_SSH_HOST_KEY }}
+          port: ${{ secrets.HETZNER_SSH_PORT || 22 }}
+          command_timeout: 42m
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            APP_DIR="${{ secrets.PLATFORM_INFRA_DEPLOY_PATH || '/home/deploy/platform_infra' }}"
+            GIT_REF="${{ inputs.git_ref }}"
+            if [[ ! -d "$APP_DIR/.git" ]]; then
+              echo "First-time setup: cloning repository into $APP_DIR"
+              git clone https://github.com/akmontheweb/platform-infra.git "$APP_DIR"
+            fi
+
+            APP_DIR="$APP_DIR" \
+            TARGET="${{ inputs.deployment_target }}" \
+            GIT_REF="$GIT_REF" \
+            CONFIRM_DESTRUCTIVE="${{ inputs.confirm_destructive_action }}" \
+            FORCE_CLEAN_BUILD="${{ inputs.force_clean_build }}" \
+            WAIT_FOR_HEALTHY="${{ inputs.wait_for_healthy }}" \
+            SERVICE_NAME="${{ inputs.service_name }}" \
+            PROJECT_NAME="${{ inputs.project_name }}" \
+            bash "$APP_DIR/scripts/deploy.sh"
