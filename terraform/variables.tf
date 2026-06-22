@@ -4,9 +4,9 @@
 # ---------------------------------------------------------------------------
 
 variable "pg_host" {
-  description = "Hostname / IP of platform-postgres (accessible from Terraform runner)"
+  description = "Hostname / IP of platform-postgres (accessible from Terraform runner). Terraform runs on the host docker network on both dev and prod, so localhost + the compose-mapped port works in both environments."
   type        = string
-  default     = "10.0.0.95"
+  default     = "localhost"
 }
 
 variable "pg_port" {
@@ -40,15 +40,15 @@ variable "kc_admin_password" {
 }
 
 variable "kc_url" {
-  description = "Keycloak base URL (accessible from Terraform runner)"
+  description = "Keycloak base URL (accessible from Terraform runner). Same default on dev + prod: terraform runs on the host, Keycloak is host-mapped to 8081."
   type        = string
-  default     = "http://10.0.0.95:8081"
+  default     = "http://localhost:8081"
 }
 
 variable "minio_server" {
-  description = "MinIO server address (host:port, accessible from Terraform runner)"
+  description = "MinIO server address (host:port, accessible from Terraform runner). Compose maps 9000→9002 on the host on both dev and prod."
   type        = string
-  default     = "10.0.0.95:9002"
+  default     = "localhost:9002"
 }
 
 variable "minio_root_user" {
@@ -76,9 +76,9 @@ variable "litellm_master_key" {
 }
 
 variable "redis_host" {
-  description = "Redis hostname (accessible from Terraform runner)"
+  description = "Redis hostname (accessible from Terraform runner). Compose maps 6379→6380 on the host on both dev and prod."
   type        = string
-  default     = "10.0.0.95"
+  default     = "localhost"
 }
 
 variable "redis_port" {
