@@ -5,7 +5,7 @@
 
 This runbook covers how secrets are stored, rotated, and recovered for the
 platform-infra stack. The pattern is **SOPS + age (file-based, git-friendly)**
-per the locked decision in `Cue/PRODUCTION_LAUNCH_PLAN.md` §7.
+per the locked decision in `cue/PRODUCTION_LAUNCH_PLAN.md` §7.
 
 ---
 
@@ -95,7 +95,7 @@ because `LITELLM_DATABASE_URL` embeds it. The compose ALWAYS reads both
 together, so update them in the same edit.
 
 After rotating `PLATFORM_REDIS_PASSWORD`, also update Cue's `REDIS_URL` in
-`Cue/.env` and `Cue/Cue-Core/.env` and run `make sync-env` in the Cue repo.
+`cue/.env` and `cue/cue-core/.env` and run `make sync-env` in the Cue repo.
 
 After rotating `LITELLM_MASTER_KEY`, all per-project virtual keys are invalidated.
 Re-run `terraform apply` to regenerate them.
@@ -187,4 +187,4 @@ This is why §2 says **two independent backups**.
 
 ## 9. Decision record
 
-- **2026-06-09:** SOPS+age (file-based, git-friendly) chosen over Vault / Doppler / 1Password Connect. File-based fits a single-team / single-host posture; revisit when team or environment count grows. See `Cue/PRODUCTION_LAUNCH_PLAN.md` §7.
+- **2026-06-09:** SOPS+age (file-based, git-friendly) chosen over Vault / Doppler / 1Password Connect. File-based fits a single-team / single-host posture; revisit when team or environment count grows. See `cue/PRODUCTION_LAUNCH_PLAN.md` §7.

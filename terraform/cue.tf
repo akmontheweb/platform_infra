@@ -18,7 +18,7 @@ module "cue" {
 }
 
 output "cue_env_file" {
-  description = "Path to generated .env.platform — merge into Cue/.env after migration"
+  description = "Path to generated .env.platform — merge into cue/.env after migration"
   value       = module.cue.env_file_path
 }
 

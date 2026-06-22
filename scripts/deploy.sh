@@ -4,7 +4,7 @@ set -euo pipefail
 # ─────────────────────────────────────────────────────────────────────────────
 # deploy.sh — platform-infra production deploy
 #
-# Mirrors Cue/scripts/deploy-hetzner.sh in shape: invoked by a GitHub Actions
+# Mirrors cue/scripts/deploy-hetzner.sh in shape: invoked by a GitHub Actions
 # workflow over SSH, drives docker compose + terraform on the server.
 #
 # Required env vars:

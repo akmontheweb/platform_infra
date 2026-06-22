@@ -24,7 +24,7 @@ module "cue" {
 }
 
 output "cue_env_file" {
-  description = "Path to generated Cue .env.platform file — copy values into Cue/.env after migration"
+  description = "Path to generated Cue .env.platform file — copy values into cue/.env after migration"
   value       = module.cue.env_file_path
 }
 
