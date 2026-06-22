@@ -85,7 +85,7 @@ tf-init-remote: ## Initialize Terraform with the MinIO S3 backend
 	#                  enable via `mc encrypt set sse-s3 …` and flip back on
 	#                  if/when at-rest encryption is required)
 	@set -a && . ./.env && set +a && \
-	$(TF) init -reconfigure \
+	$(TF) init -reconfigure -input=false \
 	    -backend-config="access_key=$$TF_BACKEND_ACCESS_KEY" \
 	    -backend-config="secret_key=$$TF_BACKEND_SECRET_KEY" \
 	    -backend-config="endpoints={s3=\"http://localhost:$${PLATFORM_MINIO_PORT:-9002}\"}" \

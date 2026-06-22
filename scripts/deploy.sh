@@ -348,6 +348,15 @@ case "$TARGET" in
     log_section "WIPING all platform-infra volumes (containers + data)"
     cd "$APP_DIR"
     docker compose down -v --remove-orphans
+
+    # CompleteRefresh starts every TF resource from scratch. Wipe any leftover
+    # local Terraform state from a prior run so `terraform init` doesn't try
+    # to migrate it interactively into the new S3 backend (which would EOF in
+    # a non-interactive deploy).
+    log_section "Wiping local Terraform state (clean slate for the new backend)"
+    rm -rf terraform/.terraform terraform/.terraform.lock.hcl
+    rm -f terraform/terraform.tfstate terraform/terraform.tfstate.backup
+
     FORCE_CLEAN_BUILD=true
     build_images
     start_services_force
