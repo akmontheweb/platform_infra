@@ -64,9 +64,9 @@ variable "minio_root_password" {
 }
 
 variable "litellm_url" {
-  description = "LiteLLM proxy base URL (accessible from Terraform runner)"
+  description = "LiteLLM proxy base URL (accessible from Terraform runner). Compose maps 4000→4001 on the host on both dev and prod."
   type        = string
-  default     = "http://10.0.0.95:4001"
+  default     = "http://localhost:4001"
 }
 
 variable "litellm_master_key" {
