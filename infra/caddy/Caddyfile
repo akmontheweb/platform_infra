@@ -47,6 +47,11 @@ jaeger.{$DOMAIN} {
 
 auth.{$DOMAIN} {
     import security_headers
+    # Keycloak's admin console embeds a same-origin session-check iframe
+    # (login-status-iframe.html). The blanket DENY from security_headers
+    # blocks it; SAMEORIGIN preserves clickjacking protection while letting
+    # auth.* frame itself. Cross-origin framing is still denied.
+    header X-Frame-Options "SAMEORIGIN"
     reverse_proxy platform-keycloak:8080
 }
 
