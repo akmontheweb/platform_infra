@@ -148,6 +148,11 @@ tf-apply-all: ## Apply ALL Terraform modules (used by CompleteRefresh)
 	export TF_VAR_pg_superuser=$$PLATFORM_PG_SUPERUSER && \
 	export TF_VAR_kc_admin_user=$$PLATFORM_KC_ADMIN_USER && \
 	export TF_VAR_minio_root_user=$$PLATFORM_MINIO_ROOT_USER && \
+	export TF_VAR_bootstrap_admin_username=$$BOOTSTRAP_ADMIN_USERNAME && \
+	export TF_VAR_bootstrap_admin_email=$$BOOTSTRAP_ADMIN_EMAIL && \
+	export TF_VAR_bootstrap_admin_password=$$BOOTSTRAP_ADMIN_PASSWORD && \
+	export TF_VAR_bootstrap_admin_first_name=$$BOOTSTRAP_ADMIN_FIRST_NAME && \
+	export TF_VAR_bootstrap_admin_last_name=$$BOOTSTRAP_ADMIN_LAST_NAME && \
 	cd terraform && terraform apply -auto-approve
 	@echo ""
 	@echo "✓ All Terraform modules applied"

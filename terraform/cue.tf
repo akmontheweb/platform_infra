@@ -16,6 +16,14 @@ module "cue" {
   litellm_url           = var.litellm_url
   litellm_master_key    = var.litellm_master_key
   api_container_port    = 8000
+
+  # Auto-provision the cue-web admin user on FirstTimeSetup. Plumbed
+  # through cue/.env.platform → cue/.env → scripts/grant-admin.sh --bootstrap.
+  bootstrap_admin_username   = var.bootstrap_admin_username
+  bootstrap_admin_email      = var.bootstrap_admin_email
+  bootstrap_admin_password   = var.bootstrap_admin_password
+  bootstrap_admin_first_name = var.bootstrap_admin_first_name
+  bootstrap_admin_last_name  = var.bootstrap_admin_last_name
 }
 
 output "cue_env_file" {

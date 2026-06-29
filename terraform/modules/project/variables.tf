@@ -58,3 +58,41 @@ variable "api_container_port" {
   type        = number
   default     = 8000
 }
+
+# ---------------------------------------------------------------------------
+# Bootstrap admin user — optional. When username is set, the BOOTSTRAP_ADMIN_*
+# block is rendered into the project's .env.platform so consume-platform.sh
+# can overlay it onto the project's .env, where scripts/grant-admin.sh
+# --bootstrap reads it via get_env. Leaving username blank skips the block
+# entirely — the consumer-side bootstrap step is a no-op when unset.
+# ---------------------------------------------------------------------------
+variable "bootstrap_admin_username" {
+  description = "Bootstrap admin Keycloak username (also stored as cue.users.email). Empty = skip."
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_email" {
+  description = "Bootstrap admin email (defaults to username if blank and username looks like an email)"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_password" {
+  description = "Bootstrap admin initial password"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "bootstrap_admin_first_name" {
+  description = "Bootstrap admin first name"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_last_name" {
+  description = "Bootstrap admin last name"
+  type        = string
+  default     = ""
+}

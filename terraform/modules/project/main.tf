@@ -343,18 +343,23 @@ resource "local_file" "project_env" {
   filename        = "${path.root}/../../${var.project_name}/.env.platform"
   file_permission = "0600"
   content = templatefile("${path.module}/templates/env.tpl", {
-    project_name     = var.project_name
-    domain           = var.domain
-    pg_password      = random_password.pg_password.result
-    pg_host          = "platform-postgres"
-    pg_port          = 5432
-    kc_realm         = var.project_name
-    kc_client_secret = random_password.kc_client_secret.result
-    minio_access_key = minio_iam_service_account.project.access_key
-    minio_secret_key = minio_iam_service_account.project.secret_key
-    redis_db         = var.redis_db
-    redis_password   = var.redis_password
-    litellm_key      = local.litellm_key
+    project_name               = var.project_name
+    domain                     = var.domain
+    pg_password                = random_password.pg_password.result
+    pg_host                    = "platform-postgres"
+    pg_port                    = 5432
+    kc_realm                   = var.project_name
+    kc_client_secret           = random_password.kc_client_secret.result
+    minio_access_key           = minio_iam_service_account.project.access_key
+    minio_secret_key           = minio_iam_service_account.project.secret_key
+    redis_db                   = var.redis_db
+    redis_password             = var.redis_password
+    litellm_key                = local.litellm_key
+    bootstrap_admin_username   = var.bootstrap_admin_username
+    bootstrap_admin_email      = var.bootstrap_admin_email
+    bootstrap_admin_password   = var.bootstrap_admin_password
+    bootstrap_admin_first_name = var.bootstrap_admin_first_name
+    bootstrap_admin_last_name  = var.bootstrap_admin_last_name
   })
 
   depends_on = [

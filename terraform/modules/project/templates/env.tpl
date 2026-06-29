@@ -63,3 +63,12 @@ REGISTRATION_ADMIN_APPROVAL=no
 # FERNET_KEY=           # python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # INTERNAL_TRANSCRIBE_TOKEN=   # openssl rand -hex 32
 # MCP_API_KEY=          # copy from platform-infra .env MCP_API_KEY
+%{ if bootstrap_admin_username != "" ~}
+
+# ── Bootstrap admin (consumed by scripts/grant-admin.sh --bootstrap) ────
+BOOTSTRAP_ADMIN_USERNAME=${bootstrap_admin_username}
+BOOTSTRAP_ADMIN_EMAIL=${bootstrap_admin_email}
+BOOTSTRAP_ADMIN_PASSWORD=${bootstrap_admin_password}
+BOOTSTRAP_ADMIN_FIRST_NAME=${bootstrap_admin_first_name}
+BOOTSTRAP_ADMIN_LAST_NAME=${bootstrap_admin_last_name}
+%{ endif ~}

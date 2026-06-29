@@ -171,3 +171,41 @@ variable "server_ip" {
   type        = string
   default     = "178.156.235.155"
 }
+
+# ---------------------------------------------------------------------------
+# Bootstrap admin user — auto-provisioned into the cue realm by
+# cue/scripts/grant-admin.sh --bootstrap as the final step of FirstTimeSetup.
+# Plumbed from platform-infra/.env BOOTSTRAP_ADMIN_* into cue's .env.platform
+# (via the project module's env.tpl), then overlaid onto cue/.env by
+# consume-platform.sh. Leave blank to skip bootstrap (e.g. on dev).
+# ---------------------------------------------------------------------------
+variable "bootstrap_admin_username" {
+  description = "Username for the cue-web bootstrap admin (Keycloak username + cue.users.email)"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_email" {
+  description = "Email for the bootstrap admin (defaults to username if it looks like an email)"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_password" {
+  description = "Initial password for the bootstrap admin"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "bootstrap_admin_first_name" {
+  description = "First name of the bootstrap admin"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_admin_last_name" {
+  description = "Last name of the bootstrap admin"
+  type        = string
+  default     = ""
+}
