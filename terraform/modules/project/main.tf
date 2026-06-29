@@ -139,7 +139,24 @@ resource "keycloak_openid_client" "app_client" {
   depends_on = [keycloak_realm.project]
 }
 
-# project-claims scope + user mapper
+# Admin UI client — used by the project's admin SPA. Public + ROPC because
+# the admin SPA does hand-rolled username/password login (see cue's
+# cue-web/admin/src/lib/keycloak.ts). Cross-origin from cue-admin.* to
+# auth.* requires web_origins to include the admin URL.
+resource "keycloak_openid_client" "admin_ui" {
+  realm_id                     = keycloak_realm.project.id
+  client_id                    = "admin-ui"
+  name                         = "Admin UI"
+  enabled                      = true
+  access_type                  = "PUBLIC"
+  standard_flow_enabled        = false
+  direct_access_grants_enabled = true
+  web_origins                  = ["https://${var.project_name}-admin.${var.domain}"]
+
+  depends_on = [keycloak_realm.project]
+}
+
+# project-claims scope + user mappers (project / role / approved)
 resource "keycloak_openid_client_scope" "project_claims" {
   realm_id               = keycloak_realm.project.id
   name                   = "${var.project_name}-claims"
@@ -156,6 +173,62 @@ resource "keycloak_openid_user_attribute_protocol_mapper" "project_attr" {
   user_attribute   = "project"
   claim_name       = "project"
   claim_value_type = "String"
+}
+
+# `role` flows into the JWT as a flat claim. The admin SPA checks
+# payload["role"] === "admin" client-side, and grant-admin.sh sets this
+# attribute alongside the realm role.
+resource "keycloak_openid_user_attribute_protocol_mapper" "role_attr" {
+  realm_id         = keycloak_realm.project.id
+  client_scope_id  = keycloak_openid_client_scope.project_claims.id
+  name             = "role-attr"
+  user_attribute   = "role"
+  claim_name       = "role"
+  claim_value_type = "String"
+}
+
+# `approved` flows into the JWT as a flat claim. Used by the API to gate
+# access for users still awaiting admin/agent approval.
+resource "keycloak_openid_user_attribute_protocol_mapper" "approved_attr" {
+  realm_id         = keycloak_realm.project.id
+  client_scope_id  = keycloak_openid_client_scope.project_claims.id
+  name             = "approved-attr"
+  user_attribute   = "approved"
+  claim_name       = "approved"
+  claim_value_type = "String"
+}
+
+# Attach the project-claims scope as a *default* scope to every project
+# client so the role/approved/project claims are always present in tokens
+# without callers having to request the scope explicitly.
+resource "keycloak_openid_client_default_scopes" "app_client" {
+  realm_id  = keycloak_realm.project.id
+  client_id = keycloak_openid_client.app_client.id
+  default_scopes = [
+    "profile",
+    "email",
+    keycloak_openid_client_scope.project_claims.name,
+  ]
+}
+
+resource "keycloak_openid_client_default_scopes" "admin_ui" {
+  realm_id  = keycloak_realm.project.id
+  client_id = keycloak_openid_client.admin_ui.id
+  default_scopes = [
+    "profile",
+    "email",
+    keycloak_openid_client_scope.project_claims.name,
+  ]
+}
+
+resource "keycloak_openid_client_default_scopes" "backend_service" {
+  realm_id  = keycloak_realm.project.id
+  client_id = keycloak_openid_client.backend_service.id
+  default_scopes = [
+    "profile",
+    "email",
+    keycloak_openid_client_scope.project_claims.name,
+  ]
 }
 
 # ---------------------------------------------------------------------------
