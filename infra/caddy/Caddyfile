@@ -46,12 +46,19 @@ jaeger.{$DOMAIN} {
 }
 
 auth.{$DOMAIN} {
-    import security_headers
-    # Keycloak's admin console embeds a same-origin session-check iframe
-    # (login-status-iframe.html). The blanket DENY from security_headers
-    # blocks it; SAMEORIGIN preserves clickjacking protection while letting
-    # auth.* frame itself. Cross-origin framing is still denied.
-    header X-Frame-Options "SAMEORIGIN"
+    # Inline headers (not `import security_headers`) so X-Frame-Options is
+    # SAMEORIGIN instead of DENY. Keycloak's admin console requires its
+    # session-check iframe (login-status-iframe.html) to load same-origin;
+    # DENY breaks the console. Mixing `import security_headers` with a
+    # standalone `header X-Frame-Options` directive doesn't reliably
+    # override — Caddy treats them as separate handlers.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "SAMEORIGIN"
+        -Server
+    }
     reverse_proxy platform-keycloak:8080
 }
 
