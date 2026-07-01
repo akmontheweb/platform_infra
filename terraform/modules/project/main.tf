@@ -320,37 +320,45 @@ resource "keycloak_openid_user_attribute_protocol_mapper" "approved_attr" {
   claim_value_type = "String"
 }
 
-# Attach the project-claims scope as a *default* scope to every project
-# client so the role/approved/project claims are always present in tokens
-# without callers having to request the scope explicitly.
-resource "keycloak_openid_client_default_scopes" "app_client" {
-  realm_id  = keycloak_realm.project.id
-  client_id = keycloak_openid_client.app_client.id
-  default_scopes = [
-    "profile",
+# Client default scopes — one source of truth for every project client.
+#
+# `keycloak_openid_client_default_scopes` REPLACES (does not merge) the
+# client's default scope list. Dropping a Keycloak built-in here silently
+# strips its claims from every issued token:
+#   - roles        → realm_access.roles  (API require_admin depends on this)
+#   - web-origins  → CORS allow-list     (browser calls fail without it)
+#   - basic        → sub / auth_time     (JWT validation depends on sub)
+#   - acr          → acr claim           (harmless to drop, but standard)
+# So we explicitly list every built-in default alongside our project-claims
+# scope. Add new scopes here rather than per-client to avoid drift.
+locals {
+  client_default_scopes = [
+    "acr",
+    "basic",
     "email",
+    "profile",
+    "roles",
+    "web-origins",
     keycloak_openid_client_scope.project_claims.name,
   ]
+}
+
+resource "keycloak_openid_client_default_scopes" "app_client" {
+  realm_id       = keycloak_realm.project.id
+  client_id      = keycloak_openid_client.app_client.id
+  default_scopes = local.client_default_scopes
 }
 
 resource "keycloak_openid_client_default_scopes" "admin_ui" {
-  realm_id  = keycloak_realm.project.id
-  client_id = keycloak_openid_client.admin_ui.id
-  default_scopes = [
-    "profile",
-    "email",
-    keycloak_openid_client_scope.project_claims.name,
-  ]
+  realm_id       = keycloak_realm.project.id
+  client_id      = keycloak_openid_client.admin_ui.id
+  default_scopes = local.client_default_scopes
 }
 
 resource "keycloak_openid_client_default_scopes" "backend_service" {
-  realm_id  = keycloak_realm.project.id
-  client_id = keycloak_openid_client.backend_service.id
-  default_scopes = [
-    "profile",
-    "email",
-    keycloak_openid_client_scope.project_claims.name,
-  ]
+  realm_id       = keycloak_realm.project.id
+  client_id      = keycloak_openid_client.backend_service.id
+  default_scopes = local.client_default_scopes
 }
 
 # ---------------------------------------------------------------------------
